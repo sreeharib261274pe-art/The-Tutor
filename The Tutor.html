@@ -1,0 +1,883 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>The Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: dark, app-like shell. Semester chips on top, a bottom bar switches Courses and Timetable. Amber is the single accent; each course keeps its own colour. */
+:root{
+  color-scheme:dark;
+  --bg:#0A0D12; --surface:#131923; --surface2:#1A2230; --surface3:#252F40; --ink:#EEF2F7; --ink2:#9BA8BA; --line:#222B39;
+  --accent:#FFB020; --accent-ink:#1A1204; --accent-soft:#2B2210;
+  --ok:#4ADE80; --ok-soft:#10301D; --bad:#FF7070; --bad-soft:#3A1B1D;
+  --c1:#5EA2FF; --c2:#B48CFF; --c3:#FF8A5B; --c4:#FF6FAE; --c5:#4ADE9B; --c6:#F2D14B; --c7:#8FA3B8;
+  --display:'Bricolage Grotesque','Arial Narrow',system-ui,sans-serif;
+  --body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);background-image:radial-gradient(900px 420px at 85% -8%,rgba(94,162,255,.11),transparent 70%);background-repeat:no-repeat;color:var(--ink);font:15px/1.5 var(--body);-webkit-text-size-adjust:100%}
+.wrap{max-width:1040px;margin:0 auto;padding-block:16px 120px;padding-inline:16px}
+h1,h2,h3{margin:0;font-family:var(--display);text-wrap:balance;letter-spacing:-.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+.mono{font-family:var(--mono)}
+.muted{color:var(--ink2)}
+small,.small{font-size:12.5px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand small{display:block;font:500 10.5px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.brand h1{margin-top:2px;font-weight:800;font-size:28px;line-height:1.05}
+.status{display:flex;align-items:center;gap:10px;font:500 11px var(--mono);color:var(--ink2)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px}
+.dot.saving{background:var(--accent)} .dot.local{background:var(--ink2)} .dot.error{background:var(--bad)}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--ink);border-radius:999px;padding:6px 12px;font:500 12px var(--mono)}
+
+/* semester chips */
+.semrow{display:flex;gap:8px;overflow-x:auto;padding-block:16px 4px;scrollbar-width:none}
+.semrow::-webkit-scrollbar{display:none}
+.sem{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink2);border-radius:999px;padding:8px 16px;font-weight:600;font-size:13.5px}
+.sem[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.sem.add{border-style:dashed;background:transparent}
+
+/* controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 16px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:10px;font-weight:600;font-size:14px;line-height:1.2}
+.btn:hover{border-color:var(--ink2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{min-height:34px;padding:5px 12px;font-size:13px;border-radius:9px}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.btn.armed{background:var(--bad);border-color:var(--bad);color:#190808}
+.btn[disabled]{opacity:.45;cursor:default}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+input[type="time"],input[type="number"]{font-family:var(--mono)}
+textarea{resize:vertical;min-height:72px}
+label.f{display:flex;flex-direction:column;gap:6px;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+label.f input,label.f textarea,label.f select{font:15px/1.4 var(--body);text-transform:none;letter-spacing:0}
+label.f input[type="time"],label.f input[type="number"]{font-family:var(--mono)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>*{min-width:0}
+.stack{display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.sec{margin:28px 0 12px;font:700 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+.sec-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.sec-h h2{font-size:21px;font-weight:700}
+.bar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.tag{display:inline-block;font:500 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--ink2);background:var(--surface2)}
+.tag.ai{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.tag.now{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+.empty{padding:16px;border:1px dashed var(--surface3);border-radius:14px;color:var(--ink2);font-size:14px}
+.note{padding:11px 14px;border-radius:12px;background:var(--accent-soft);border:1px solid #5a4416;font-size:13.5px}
+.ring{position:relative;display:inline-grid;place-items:center;flex:none}
+.ring svg{display:block}
+.ring b{position:absolute;font:600 12px var(--mono)}
+
+/* hero */
+.hero{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:14px}
+.hero h2{font-size:30px;font-weight:800;line-height:1.1}
+.hero .sub{margin-top:6px;font:500 12.5px var(--mono);color:var(--ink2)}
+.sess{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.sess .t{font:500 13.5px var(--mono);min-width:48px}
+.sess b{font-weight:600}
+.lbl{margin:16px 0 2px;font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+
+/* course cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.card{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;text-align:left;color:var(--ink)}
+.card:hover{border-color:var(--surface3);background:var(--surface2)}
+.card .h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.code{display:inline-flex;align-items:center;gap:7px;font:500 11.5px var(--mono);letter-spacing:.06em;color:var(--ink2)}
+.sq{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--cx,var(--c7));flex:none}
+.card .ttl{display:block;margin-top:6px;font:700 19px/1.2 var(--display)}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills span{font:500 11.5px var(--mono);color:var(--ink2);background:var(--surface3);border-radius:6px;padding:2px 7px}
+.pills span b{color:var(--ink);font-weight:500}
+.card .l{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--ink2)}
+.totals{margin-top:16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:14px;padding:12px 16px;font:500 12px var(--mono);letter-spacing:.06em;background:var(--surface);color:var(--ink2)}
+
+/* course page */
+.back{margin:16px 0 12px}
+.chead{padding:20px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
+.chead h2{font-size:28px;font-weight:800;line-height:1.1;margin-top:8px}
+.tabs{display:flex;gap:4px;overflow-x:auto;margin-top:16px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;background:none;border:0;border-radius:10px;padding:9px 14px;font-weight:600;font-size:14px;color:var(--ink2)}
+.tab[aria-selected="true"]{background:var(--surface3);color:var(--ink)}
+.pane{padding-top:18px}
+.topic{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.topic:last-child{border-bottom:0}
+.topic .tt{font-weight:500;overflow-wrap:anywhere}
+.topic .meta{display:block;font-size:12.5px;color:var(--ink2)}
+.topic.done .tt{color:var(--ink2);text-decoration:line-through;text-decoration-color:var(--surface3)}
+.st{width:34px;height:34px;border:2px solid var(--ink2);border-radius:10px;background:transparent;display:grid;place-items:center;padding:0;color:var(--accent-ink);font-weight:800}
+.st[data-s="1"]{border-color:var(--accent);background:linear-gradient(90deg,var(--accent) 50%,transparent 50%)}
+.st[data-s="2"]{border-color:var(--ok);background:var(--ok)}
+.st[data-s="2"]::after{content:"\2713"}
+.tedit{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tedit input{flex:1 1 180px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-top:10px}
+ul.clean{list-style:none;margin:0;padding:0}
+.mat{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.mat a{font-weight:600;color:var(--accent);overflow-wrap:anywhere}
+.mat small{display:block;color:var(--ink2)}
+.mgroup{padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.mgroup+.mgroup{margin-top:12px}
+.mgroup h3{font-size:17px;font-weight:700}
+details.qa{border-top:1px solid var(--line);padding:12px 0}
+details.qa:first-child{border-top:0}
+details.qa summary{cursor:pointer;font-weight:600;overflow-wrap:anywhere}
+details.qa .ans{white-space:pre-wrap;margin:10px 0;padding:12px 14px;background:var(--surface2);border-radius:12px;overflow-wrap:anywhere}
+.opt{display:block;width:100%;text-align:left;padding:13px 14px;border:1px solid var(--line);background:var(--surface2);border-radius:12px;margin-top:8px;overflow-wrap:anywhere}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.qtext{font:600 18px/1.4 var(--body);overflow-wrap:anywhere;white-space:pre-wrap}
+.days{display:flex;gap:6px;flex-wrap:wrap}
+.day{width:44px;height:44px;border:1px solid var(--line);background:var(--surface2);border-radius:12px;font:500 13px var(--mono)}
+.day[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:96px;margin-top:6px}
+.week div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%;font:500 10.5px var(--mono);color:var(--ink2)}
+.week i{display:block;width:100%;max-width:34px;background:var(--accent);border-radius:6px 6px 2px 2px;min-height:3px}
+.week div.off i{background:var(--surface3)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:56vh;overflow:auto;padding:2px}
+.msg{max-width:94%;padding:11px 14px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.u{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:5px}
+.msg.a{align-self:flex-start;background:var(--surface2);border-bottom-left-radius:5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+
+/* timetable */
+.ttgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:start}
+.ttday{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;min-width:0}
+.ttday.today{border-color:var(--accent)}
+.ttday h3{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:15px;font-weight:700;margin-bottom:8px}
+.ent{display:block;width:100%;text-align:left;margin-top:8px;padding:10px 11px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--cx,var(--c7)) 15%,var(--surface));color:var(--ink)}
+.ent:hover{border-color:var(--cx,var(--ink2))}
+.ent .tm{display:block;font:500 11.5px var(--mono);color:var(--ink2)}
+.ent .nm{display:block;margin-top:2px;font-weight:600;font-size:14px;line-height:1.3;overflow-wrap:anywhere}
+.ent .rm{display:block;margin-top:3px;font-size:12px;color:var(--ink2)}
+.ttempty{font-size:13px;color:var(--ink2);padding-top:2px}
+
+/* bottom bar & toast */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:5;background:rgba(10,13,18,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px))}
+.nav-in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;background:none;border:0;border-radius:12px;color:var(--ink2);font:600 11.5px var(--body)}
+.nav button[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
+.nav svg{display:block}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));max-width:min(92vw,460px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:500;z-index:9}
+@media (max-width:480px){
+  .brand h1{font-size:25px}
+  .hero h2{font-size:25px}
+  .chead h2{font-size:23px}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><small>NIT Calicut &middot; Production Engineering</small><h1>The Tutor</h1></div>
+    <div class="status"><span id="timer-slot"></span><span id="sync"><i class="dot local"></i>Loading</span></div>
+  </header>
+  <main id="app"></main>
+</div>
+<nav class="nav" aria-label="Sections"><div class="nav-in">
+  <button id="nav-home" data-act="nav-home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Courses</button>
+  <button id="nav-tt" data-act="nav-tt"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2.5v3M16 2.5v3"/></svg>Timetable</button>
+</div></nav>
+<input type="file" id="file-pick" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.md,.txt,.csv" hidden>
+<input type="file" id="ask-img" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- catalogue: Semester I comes from the programme structure; everything else is added in the app ---------- */
+const SEM1={id:'s1',name:'Semester I',courses:[
+  {code:'MA1003E',title:'Mathematics I',L:3,T:1,P:0,O:5,cr:3,cat:'IC'},
+  {code:'PH1002E',title:'Mechanics and Waves',L:3,T:0,P:0,O:6,cr:3,cat:'IC'},
+  {code:'EE1013E',title:'Electrical Engineering',L:3,T:0,P:0,O:6,cr:3,cat:'PC'},
+  {code:'MS1001E',title:'Professional Communication',L:3,T:0,P:0,O:6,cr:3,cat:'IC'},
+  {code:'ME1401E',title:'Engineering Mechanics',L:3,T:0,P:0,O:6,cr:3,cat:'PC'},
+  {code:'ME1001E',title:'Computer Programming and Numerical Methods',L:2,T:0,P:2,O:5,cr:3,cat:'PC'},
+  {code:'EE1093E',title:'Electrical Engineering Lab',L:0,T:0,P:2,O:1,cr:1,cat:'PC'}
+]};
+const KINDS=[
+  {k:'notes',label:'Notes',hint:'Lecture notes, PDFs, photos of handwritten pages'},
+  {k:'tutorial',label:'Tutorial sheets',hint:'Problem sheets given in class'},
+  {k:'answers',label:'Tutorial answers',hint:'Solutions and answer keys for the sheets'},
+  {k:'textbook',label:'Textbook',hint:'A digital copy, or a link if the file is over 20 MB'},
+  {k:'pyq',label:'Previous year papers',hint:'Name each one, for example "End sem 2024"'}
+];
+const TYPES={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif',md:'text/markdown',txt:'text/plain',csv:'text/csv'};
+const TABS=[['topics','Topics'],['materials','Materials'],['qa','Q&A'],['quiz','Quiz'],['study','Study time'],['ask','Ask Claude']];
+const STATUS=['Not started','In progress','Done'];
+const DAYL=['M','T','W','T','F','S','S'];
+const DAYN=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+const KINDT=['Lecture','Tutorial','Lab','Other'];
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rid=()=>Math.random().toString(36).slice(2,9);
+const pad=n=>String(n).padStart(2,'0');
+const dkey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const dow=d=>(d.getDay()+6)%7;
+const fmt=m=>{m=Math.round(m);if(m<60)return m+' min';const h=Math.floor(m/60),r=m%60;return r?h+'h '+pad(r)+'m':h+'h'};
+const fmtSize=b=>b>1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
+const val=id=>{const e=document.getElementById(id);return e?e.value:''};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const tmin=t=>{const m=/^(\d{1,2}):(\d{2})$/.exec(t||'');return m?(+m[1])*60+(+m[2]):0};
+const totals=cs=>cs.reduce((a,c)=>({L:a.L+c.L,T:a.T+c.T,P:a.P+c.P,O:a.O+c.O,cr:a.cr+c.cr}),{L:0,T:0,P:0,O:0,cr:0});
+
+/* ---------- state ---------- */
+const blank=()=>({topics:[],materials:[],qa:[],quiz:[],scores:[],plan:{days:[],time:'18:00',mins:60},logs:{}});
+const norm=d=>{const o=Object.assign(blank(),d||{});o.plan=Object.assign(blank().plan,o.plan||{});return o};
+const defMeta=()=>({sems:[clone(SEM1)],cur:'s1',tt:{}});
+const normMeta=m=>{const o=Object.assign(defMeta(),m||{});if(!Array.isArray(o.sems)||!o.sems.length)o.sems=[clone(SEM1)];o.sems.forEach(s=>{s.courses=s.courses||[]});o.tt=o.tt||{};if(!o.sems.some(s=>s.id===o.cur))o.cur=o.sems[0].id;return o};
+let META=defMeta(),S={};
+const C=code=>S[code]||(S[code]=blank());
+const sem=()=>META.sems.find(s=>s.id===META.cur)||META.sems[0];
+const courses=()=>sem().courses;
+function course(code){for(const s of META.sems){const c=s.courses.find(x=>x.code===code);if(c)return c}return null}
+function cidx(code){for(const s of META.sems){const i=s.courses.findIndex(x=>x.code===code);if(i>=0)return i%7+1}return 7}
+const ttList=()=>META.tt[META.cur]||(META.tt[META.cur]=[]);
+let view={page:'home',code:null,tab:'topics'};
+const ui={editTopics:false,pending:null,busy:null,qaTopic:'*',qzTopic:'*',quiz:null,editQA:null,gen:null,chat:{},armed:null,msg:'',addSem:false,semSettings:false,addCourse:false,editCourse:false,ttForm:null,ttDays:[]};
+let assets=null,sample=null,imgOK=false,coll=null,timer=null;
+const dirty=new Set();
+
+/* ---------- persistence: cloud store when signed in, local cache always ---------- */
+const LS='sdesk.v2',LS1='sdesk.v1',LT='sdesk.timer';
+function loadLocal(){
+  try{
+    const r=localStorage.getItem(LS);
+    if(r){const o=JSON.parse(r);META=normMeta(o.meta);S={};Object.keys(o.s||{}).forEach(k=>S[k]=norm(o.s[k]))}
+    else{const r1=localStorage.getItem(LS1);if(r1){const o=JSON.parse(r1);Object.keys(o).forEach(k=>S[k]=norm(o[k]))}}
+  }catch(e){}
+  try{const t=localStorage.getItem(LT);if(t)timer=JSON.parse(t)}catch(e){}
+}
+function cacheLocal(){try{localStorage.setItem(LS,JSON.stringify({meta:META,s:S}))}catch(e){}}
+const docOf=code=>code==='_meta'?META:S[code];
+let saveT=null;
+function save(code){dirty.add(code);cacheLocal();clearTimeout(saveT);saveT=setTimeout(flush,500);setSync(coll?'saving':'local')}
+const saveMeta=()=>save('_meta');
+let flushing=false;
+async function flush(){
+  if(flushing||!coll)return;
+  flushing=true;setSync('saving');
+  let code=null;
+  try{
+    while(dirty.size){code=[...dirty][0];dirty.delete(code);const d=docOf(code);if(d)await coll.doc(code).set(clone(d))}
+    setSync('synced');
+  }catch(e){if(code)dirty.add(code);setSync('error')}
+  flushing=false;
+}
+function setSync(s){
+  const m={synced:['','Saved to your account'],saving:['saving','Saving'],local:['local','This device only'],error:['error','Not saved, will retry']}[s];
+  const el=$('#sync');if(el)el.innerHTML='<i class="dot '+m[0]+'"></i>'+m[1];
+}
+async function loadCloud(){
+  const snap=await coll.get();
+  if(snap.size){
+    let hasMeta=false;S={};
+    snap.docs.forEach(d=>{if(d.id==='_meta'){META=normMeta(d.data());hasMeta=true}else S[d.id]=norm(d.data())});
+    cacheLocal();if(!hasMeta)saveMeta();
+  }else{Object.keys(S).forEach(k=>dirty.add(k));dirty.add('_meta');flush()}
+}
+async function boot(){
+  loadLocal();render(true);tickTimer();
+  const cl=window.claude;
+  if(!cl||!cl.use){setSync('local');return}
+  try{
+    const [u,d,a,s]=await Promise.all([cl.use('user'),cl.use('db'),cl.use('assets'),cl.use('sample')]);
+    assets=a;sample=s;
+    if(s){try{const l=await s.limits();imgOK=!!l.images}catch(e){}}
+    if(u&&d){const id=await u.id();if(id){coll=d.collection('data/users/'+id);await loadCloud()}}
+  }catch(e){coll=null}
+  setSync(coll?'synced':'local');
+  render();
+}
+
+/* ---------- derived ---------- */
+function weekDates(){const t=new Date();t.setHours(0,0,0,0);const m=new Date(t);m.setDate(t.getDate()-dow(t));return[...Array(7)].map((_,i)=>{const x=new Date(m);x.setDate(m.getDate()+i);return x})}
+const weekMins=code=>weekDates().reduce((a,d)=>a+(C(code).logs[dkey(d)]||0),0);
+const todayMins=code=>C(code).logs[dkey(new Date())]||0;
+function todaySessions(){
+  const t=dow(new Date());
+  return courses().filter(c=>C(c.code).plan.days.includes(t)).map(c=>({c,time:C(c.code).plan.time,mins:C(c.code).plan.mins})).sort((a,b)=>a.time.localeCompare(b.time));
+}
+const entTitle=e=>e.code?((course(e.code)||{}).title||e.title||e.code):(e.title||'Class');
+const todayClasses=()=>{const t=dow(new Date());return ttList().filter(e=>e.day===t).sort((a,b)=>a.start.localeCompare(b.start))};
+const topicName=(d,id)=>{const t=d.topics.find(x=>x.id===id);return t?t.title:'General'};
+const topicOpts=(d,sel,opt)=>{opt=opt||{};return (opt.all?'<option value="*"'+(sel==='*'?' selected':'')+'>All topics</option>':'')+'<option value=""'+(sel===''?' selected':'')+'>General</option>'+d.topics.map(t=>'<option value="'+t.id+'"'+(sel===t.id?' selected':'')+'>'+esc(t.title)+'</option>').join('')};
+function progress(d){const n=d.topics.length,done=d.topics.filter(t=>t.s===2).length,prog=d.topics.filter(t=>t.s===1).length;return{n,done,prog,pct:n?done/n*100:0}}
+
+/* ---------- toast & confirm ---------- */
+let toastT;
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},3400)}
+function confirmBtn(b,fn){
+  const key=b.dataset.act+':'+(b.dataset.id||b.dataset.code||'');
+  if(ui.armed===key){ui.armed=null;fn();return}
+  ui.armed=key;const old=b.textContent;b.textContent='Tap to confirm';b.classList.add('armed');
+  setTimeout(()=>{if(ui.armed===key){ui.armed=null;if(b.isConnected){b.textContent=old;b.classList.remove('armed')}}},3000);
+}
+
+/* ---------- rendering ---------- */
+function render(nav){
+  const app=$('#app');
+  const saved={};
+  if(!nav)app.querySelectorAll('[data-draft][id]').forEach(el=>{saved[el.id]=el.value});
+  const ae=document.activeElement;
+  const fid=!nav&&ae&&app.contains(ae)&&ae.id?ae.id:null;
+  const sel=fid&&ae.selectionStart!=null?[ae.selectionStart,ae.selectionEnd]:null;
+  app.innerHTML=view.page==='tt'?renderTT():(view.page==='course'&&course(view.code)?renderCourse():renderHome());
+  Object.keys(saved).forEach(id=>{const el=document.getElementById(id);if(el&&el.value!==saved[id])el.value=saved[id]});
+  if(fid){const el=document.getElementById(fid);if(el){el.focus();if(sel&&el.setSelectionRange){try{el.setSelectionRange(sel[0],sel[1])}catch(e){}}}}
+  const lg=document.getElementById('chat-log');if(lg)lg.scrollTop=lg.scrollHeight;
+  $('#nav-home').setAttribute('aria-current',view.page==='tt'?'false':'page');
+  $('#nav-tt').setAttribute('aria-current',view.page==='tt'?'page':'false');
+}
+
+function ring(p,size,sw,label){
+  const r=(size-sw)/2-1,c=2*Math.PI*r,h=size/2;
+  return '<span class="ring" style="width:'+size+'px;height:'+size+'px"><svg viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" aria-hidden="true"><circle cx="'+h+'" cy="'+h+'" r="'+r+'" fill="none" stroke="var(--surface3)" stroke-width="'+sw+'"/>'
+   +(p>0?'<circle cx="'+h+'" cy="'+h+'" r="'+r+'" fill="none" stroke="var(--accent)" stroke-width="'+sw+'" stroke-linecap="round" stroke-dasharray="'+(c*Math.min(p,100)/100)+' '+c+'" transform="rotate(-90 '+h+' '+h+')"/>':'')
+   +'</svg><b>'+label+'</b></span>';
+}
+function semChips(){
+  return '<div class="semrow" role="group" aria-label="Semester">'+META.sems.map(s=>'<button class="sem" aria-pressed="'+(s.id===META.cur)+'" data-act="sem-pick" data-id="'+s.id+'">'+esc(s.name)+'</button>').join('')+'<button class="sem add" data-act="sem-add-toggle">+ Semester</button></div>'
+   +(ui.addSem?'<div class="panel row" style="margin-top:10px"><label class="f" style="flex:1;min-width:180px">Semester name<input id="f-sem-name" data-draft value="Semester '+(ROMAN[META.sems.length]||META.sems.length+1)+'"></label><button class="btn primary" data-act="sem-add">Add semester</button></div>':'');
+}
+
+function renderHome(){
+  const now=new Date(),cs=courses(),tot=totals(cs);
+  const wk=cs.reduce((a,c)=>a+weekMins(c.code),0),tgt=Math.max(1,tot.O*60),pct=Math.min(100,wk/tgt*100);
+  const sess=todaySessions(),cls=todayClasses();
+  const nowM=now.getHours()*60+now.getMinutes();
+  const clsHtml=cls.length?cls.map(e=>{
+    const live=nowM>=tmin(e.start)&&nowM<tmin(e.end);
+    return '<div class="sess"><span class="t">'+esc(e.start)+'</span><span><b>'+esc(entTitle(e))+'</b><br><small class="muted">'+esc(e.start)+'–'+esc(e.end)+(e.room?' · '+esc(e.room):'')+' · '+esc(e.kind||'Lecture')+'</small></span>'+(live?'<span class="tag now">Now</span>':'<span></span>')+'</div>';
+  }).join(''):'<div class="small muted" style="padding-top:8px">'+(ttList().length?'No classes today.':'Add your classes in the Timetable tab.')+'</div>';
+  const anyPlan=cs.some(c=>C(c.code).plan.days.length),allPlan=cs.length&&cs.every(c=>C(c.code).plan.days.length);
+  const studyHtml=sess.length?sess.map(s=>{
+    const got=todayMins(s.c.code),done=got>=s.mins;
+    return '<div class="sess"><span class="t">'+esc(s.time)+'</span><span><b>'+esc(s.c.title)+'</b><br><small class="muted">'+s.c.code+' · planned '+fmt(s.mins)+(got?' · logged '+fmt(got):'')+'</small></span>'
+     +(done?'<span class="tag">Done</span>':'<button class="btn sm primary" data-act="timer-start" data-code="'+s.c.code+'">Start</button>')+'</div>';
+  }).join(''):'<div class="small muted" style="padding-top:8px">'+(anyPlan?'No study sessions planned for today.':'No study times set yet. Set them inside a course, or draft a week from your out-of-class (O) hours.')+'</div>';
+  const cards=cs.length?cs.map(c=>{
+    const d=C(c.code),p=progress(d),w=weekMins(c.code);
+    return '<button class="card" style="--cx:var(--c'+cidx(c.code)+')" data-act="open-course" data-code="'+c.code+'" aria-label="Open '+esc(c.title)+'">'
+     +'<span class="h"><span><span class="code"><i class="sq"></i>'+esc(c.code)+' · '+esc(c.cat)+'</span><span class="ttl">'+esc(c.title)+'</span></span>'+ring(p.pct,46,5,Math.round(p.pct)+'')+'</span>'
+     +'<span class="pills"><span>L <b>'+c.L+'</b></span><span>T <b>'+c.T+'</b></span><span>P <b>'+c.P+'</b></span><span>O <b>'+c.O+'</b></span><span>Cr <b>'+c.cr+'</b></span></span>'
+     +'<span class="l"><span>'+(p.n?p.done+' of '+p.n+' topics done':'No topics yet')+'</span><span class="mono">'+fmt(w)+' / '+c.O+'h</span></span></button>';
+  }).join(''):'<div class="empty">No courses in '+esc(sem().name)+' yet. Add the first one below.</div>';
+  return semChips()
+   +'<section class="panel" style="margin-top:14px"><div class="hero"><div><h2>'+now.toLocaleDateString('en-IN',{weekday:'long'})+'</h2><div class="sub">'+now.toLocaleDateString('en-IN',{day:'numeric',month:'long'})+' · '+esc(sem().name)+'</div><div class="sub">Week '+fmt(wk)+' of '+fmt(tgt)+'</div></div>'+ring(pct,72,7,Math.round(pct)+'%')+'</div>'
+   +'<div class="lbl">Classes today</div>'+clsHtml
+   +'<div class="lbl">Study today</div>'+studyHtml
+   +(cs.length&&!allPlan?'<div style="margin-top:14px"><button class="btn sm" data-act="draft-plan">Draft a weekly study plan</button></div>':'')
+   +'</section>'
+   +'<h2 class="sec">Courses</h2><div class="grid">'+cards+'</div>'
+   +(cs.length?'<div class="totals" aria-label="Semester totals"><span>TOTAL</span><span>L '+tot.L+'</span><span>T '+tot.T+'</span><span>P '+tot.P+'</span><span>O '+tot.O+'</span><span>CR '+tot.cr+'</span></div>':'')
+   +'<div class="row" style="margin-top:18px"><button class="btn" data-act="course-add-toggle">'+(ui.addCourse?'Close':'+ Add a course')+'</button><button class="btn ghost" data-act="sem-settings">'+(ui.semSettings?'Close settings':'Semester settings')+'</button></div>'
+   +(ui.addCourse?courseForm('add',{code:'',title:'',L:3,T:0,P:0,O:6,cr:3,cat:'PC'}):'')
+   +(ui.semSettings?'<div class="panel stack" style="margin-top:12px"><label class="f">Rename semester<input id="f-sem-rename" data-draft value="'+esc(sem().name)+'"></label><div class="row"><button class="btn primary" data-act="sem-rename">Save name</button><button class="btn danger" data-act="sem-del" data-id="'+sem().id+'">Delete semester</button></div><div class="small muted">Deleting a semester removes its courses, topics, files list and timetable.</div></div>':'');
+}
+function courseForm(mode,c){
+  const p=mode==='add'?'f-c-':'f-ce-';
+  return '<div class="panel stack" style="margin-top:12px">'
+   +(mode==='add'?'<div class="two"><label class="f">Course code<input id="'+p+'code" data-draft value="'+esc(c.code)+'" placeholder="MA1003E" autocapitalize="characters"></label><label class="f">Category<input id="'+p+'cat" data-draft value="'+esc(c.cat)+'" placeholder="PC, IC, PE"></label></div>':'<label class="f">Category<input id="'+p+'cat" data-draft value="'+esc(c.cat)+'"></label>')
+   +'<label class="f">Course title<input id="'+p+'title" data-draft value="'+esc(c.title)+'"></label>'
+   +'<div class="two" style="grid-template-columns:repeat(auto-fit,minmax(70px,1fr))">'+['L','T','P','O'].map(k=>'<label class="f">'+k+'<input id="'+p+k+'" data-draft type="number" min="0" value="'+c[k]+'"></label>').join('')+'<label class="f">Credits<input id="'+p+'cr" data-draft type="number" min="0" value="'+c.cr+'"></label></div>'
+   +'<div><button class="btn primary" data-act="'+(mode==='add'?'course-add':'course-save')+'">'+(mode==='add'?'Add course':'Save details')+'</button></div></div>';
+}
+
+function renderCourse(){
+  const c=course(view.code),d=C(c.code),p=progress(d);
+  const tabs=TABS.map(t=>'<button class="tab" role="tab" aria-selected="'+(view.tab===t[0])+'" data-act="tab" data-tab="'+t[0]+'">'+t[1]+'</button>').join('');
+  let body='';
+  if(view.tab==='topics')body=tTopics(c,d,p);
+  else if(view.tab==='materials')body=tMaterials(c,d);
+  else if(view.tab==='qa')body=tQA(c,d);
+  else if(view.tab==='quiz')body=tQuiz(c,d);
+  else if(view.tab==='study')body=tStudy(c,d);
+  else body=tAsk(c,d);
+  return '<button class="btn sm ghost back" data-act="go-home">&larr; '+esc(sem().name)+'</button>'
+   +'<div class="chead" style="--cx:var(--c'+cidx(c.code)+')"><div class="row" style="justify-content:space-between"><span class="code"><i class="sq"></i>'+esc(c.code)+' · '+esc(c.cat)+'</span>'+ring(p.pct,50,5,Math.round(p.pct)+'')+'</div><h2>'+esc(c.title)+'</h2>'
+   +'<div class="pills" style="margin-top:12px"><span>L <b>'+c.L+'</b></span><span>T <b>'+c.T+'</b></span><span>P <b>'+c.P+'</b></span><span>O <b>'+c.O+'</b></span><span>Cr <b>'+c.cr+'</b></span></div>'
+   +'<div class="legend"><span>'+(p.n?p.done+' of '+p.n+' topics done':'No topics yet')+'</span><span>This week '+fmt(weekMins(c.code))+' of '+c.O+'h</span></div></div>'
+   +'<div class="tabs" role="tablist">'+tabs+'</div><div class="pane">'+body+'</div>';
+}
+
+/* ----- Topics ----- */
+function topicMeta(d,id){
+  const n=d.materials.filter(m=>m.topic===id).length,q=d.qa.filter(m=>m.topic===id).length,z=d.quiz.filter(m=>m.topic===id).length;
+  const parts=[];if(n)parts.push(n+' file'+(n>1?'s':''));if(q)parts.push(q+' Q&A');if(z)parts.push(z+' quiz Qs');
+  return parts.join(' · ');
+}
+function tTopics(c,d,p){
+  const rows=d.topics.map((t,i)=>{
+    if(ui.editTopics){
+      return '<div class="topic" style="grid-template-columns:1fr"><div class="tedit"><input id="tn-'+t.id+'" value="'+esc(t.title)+'" data-chg="topic-rename" data-id="'+t.id+'" aria-label="Topic name">'
+       +'<button class="btn sm" data-act="topic-up" data-id="'+t.id+'" '+(i===0?'disabled':'')+' aria-label="Move up">&uarr;</button>'
+       +'<button class="btn sm" data-act="topic-down" data-id="'+t.id+'" '+(i===d.topics.length-1?'disabled':'')+' aria-label="Move down">&darr;</button>'
+       +'<button class="btn sm danger" data-act="topic-del" data-id="'+t.id+'">Remove</button></div></div>';
+    }
+    const meta=topicMeta(d,t.id);
+    return '<div class="topic'+(t.s===2?' done':'')+'"><button class="st" data-s="'+t.s+'" data-act="topic-cycle" data-id="'+t.id+'" aria-label="'+esc(t.title)+': '+STATUS[t.s]+'. Tap to change"></button>'
+     +'<div><span class="tt">'+esc(t.title)+'</span><span class="meta">'+STATUS[t.s]+(meta?' · '+esc(meta):'')+'</span></div></div>';
+  }).join('');
+  return '<div class="sec-h"><h2>Topics</h2><button class="btn sm" data-act="topics-edit">'+(ui.editTopics?'Done editing':'Edit list')+'</button></div>'
+   +(d.topics.length?'<div class="panel" style="padding-block:6px">'+rows+'</div>':'<div class="empty">No topics yet. Paste the topics of this course below, one per line. When faculty adds a topic later, add it here, and use Edit list to rename, reorder or remove.</div>')
+   +(d.topics.length&&!ui.editTopics?'<div class="legend"><span>Tap the box to move a topic: not started, in progress, done.</span></div>':'')
+   +'<div class="panel stack" style="margin-top:16px"><label class="f">Add topics (one per line)<textarea id="f-topics" data-draft rows="4" placeholder="Limits and continuity&#10;Partial differentiation"></textarea></label><div><button class="btn primary" data-act="topics-add">Add to list</button></div></div>'
+   +'<div class="row" style="margin-top:16px"><button class="btn ghost" data-act="course-edit-toggle">'+(ui.editCourse?'Close course details':'Course details')+'</button></div>'
+   +(ui.editCourse?courseForm('edit',c)+'<div style="margin-top:12px"><button class="btn danger" data-act="course-del" data-code="'+c.code+'">Remove this course</button></div>':'');
+}
+
+/* ----- Materials ----- */
+function typeLabel(m){if(m.url)return'LINK';const t=m.type||'';if(t==='application/pdf')return'PDF';if(t.startsWith('image/'))return'IMG';if(t==='text/markdown')return'MD';if(t==='text/csv')return'CSV';return'TXT'}
+function tMaterials(c,d){
+  return '<div class="note" style="margin-bottom:12px">Files you upload stay in this page, up to 20 MB each. PDF, images, text and Markdown work. For Word or PowerPoint files, export a PDF first.</div>'
+  +(ui.msg?'<div class="note" style="margin-bottom:12px">'+esc(ui.msg)+'</div>':'')
+  +KINDS.map(k=>{
+    const items=d.materials.filter(m=>m.kind===k.k);
+    const p=ui.pending&&ui.pending.kind===k.k?ui.pending:null;
+    const list=items.length?'<ul class="clean">'+items.map(m=>{
+      const href=m.url||('/_blob/'+m.assetId);
+      return '<li class="mat"><span class="tag">'+typeLabel(m)+'</span><div><a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+esc(m.title)+'</a><small>'+esc(topicName(d,m.topic))+(m.size?' · '+fmtSize(m.size):'')+' · '+new Date(m.added).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</small></div><button class="btn sm danger" data-act="mat-del" data-id="'+m.id+'">Remove</button></li>';
+    }).join('')+'</ul>':'<div class="small muted" style="margin-top:6px">Nothing here yet. '+esc(k.hint)+'.</div>';
+    let form='';
+    if(p){
+      form='<div class="stack" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">'
+       +'<label class="f">Title<input id="f-mat-title" data-draft value="'+esc(p.title||'')+'"></label>'
+       +(p.mode==='link'?'<label class="f">Link<input id="f-mat-url" data-draft inputmode="url" placeholder="https://..."></label>':'<div class="small muted">'+esc(p.file.name)+' · '+fmtSize(p.file.size)+'</div>')
+       +'<label class="f">Topic<select id="f-mat-topic" data-draft>'+topicOpts(d,'')+'</select></label>'
+       +'<div class="row"><button class="btn primary" data-act="mat-save" '+(ui.busy==='upload'?'disabled':'')+'>'+(ui.busy==='upload'?'Uploading…':'Save')+'</button><button class="btn" data-act="mat-cancel">Cancel</button></div></div>';
+    }
+    return '<section class="mgroup"><div class="sec-h" style="margin-bottom:2px"><h3>'+k.label+' <span class="muted small mono">'+items.length+'</span></h3>'
+     +'<span class="row">'+(assets?'<button class="btn sm" data-act="mat-pick" data-kind="'+k.k+'">Upload file</button>':'')+'<button class="btn sm" data-act="mat-link" data-kind="'+k.k+'">Add link</button></span></div>'
+     +list+form+'</section>';
+  }).join('');
+}
+
+/* ----- Q&A ----- */
+function tQA(c,d){
+  const f=ui.qaTopic,items=d.qa.filter(q=>f==='*'||q.topic===f);
+  const list=items.length?items.map(q=>{
+    if(ui.editQA===q.id){
+      return '<div class="stack" style="padding:12px 0;border-top:1px solid var(--line)"><label class="f">Question<textarea id="e-qa-q" rows="2">'+esc(q.q)+'</textarea></label><label class="f">Answer<textarea id="e-qa-a" rows="5">'+esc(q.a)+'</textarea></label><div class="row"><button class="btn primary sm" data-act="qa-save" data-id="'+q.id+'">Save</button><button class="btn sm" data-act="qa-edit" data-id="">Cancel</button></div></div>';
+    }
+    return '<details class="qa"><summary>'+esc(q.q)+'</summary><div class="small muted" style="margin-top:6px">'+esc(topicName(d,q.topic))+(q.ai?' <span class="tag ai">Claude draft, check it</span>':'')+'</div><div class="ans">'+esc(q.a)+'</div>'
+     +'<div class="row"><button class="btn sm" data-act="qa-edit" data-id="'+q.id+'">Edit</button>'+(sample?'<button class="btn sm" data-act="qa-ask" data-id="'+q.id+'">Ask Claude about this</button>':'')+'<button class="btn sm danger" data-act="qa-del" data-id="'+q.id+'">Remove</button></div></details>';
+  }).join(''):'<div class="small muted">No questions here yet. Add your own below'+(sample?', or have Claude draft a set for one topic':'')+'.</div>';
+  return '<div class="sec-h"><h2>Questions and answers</h2><label class="f" style="min-width:200px;flex:1;max-width:320px">Topic<select id="f-qa-filter" data-chg="filter-qa">'+topicOpts(d,f,{all:true})+'</select></label></div>'
+   +'<div class="panel">'+list+'</div>'
+   +'<div class="panel stack" style="margin-top:16px"><h3 style="font-size:17px">Add a question</h3>'
+   +'<label class="f">Topic<select id="f-qa-topic" data-draft>'+topicOpts(d,f==='*'?'':f)+'</select></label>'
+   +'<label class="f">Question<textarea id="f-qa-q" data-draft rows="2"></textarea></label>'
+   +'<label class="f">Answer<textarea id="f-qa-a" data-draft rows="4"></textarea></label>'
+   +'<div class="row"><button class="btn primary" data-act="qa-add">Add</button>'
+   +(sample?'<button class="btn" data-act="qa-gen" '+(ui.gen?'disabled':'')+'>'+(ui.gen==='qa'?'Drafting…':'Draft 5 with Claude for the selected topic')+'</button>':'')+'</div></div>';
+}
+
+/* ----- Quiz ----- */
+function tQuiz(c,d){
+  const z=ui.quiz;
+  if(z&&z.code===c.code)return quizPlay(z);
+  const f=ui.qzTopic,pool=d.quiz.filter(q=>f==='*'||q.topic===f);
+  const hist=d.scores.filter(s=>f==='*'||s.topic===f).slice(-5).reverse();
+  const qs=pool.length?pool.map(q=>'<li class="mat" style="grid-template-columns:1fr auto"><div><span style="overflow-wrap:anywhere">'+esc(q.q)+'</span><small>'+esc(topicName(d,q.topic))+' · answer: '+esc(q.opts[q.ans])+(q.ai?' · <span class="tag ai">Claude draft</span>':'')+'</small></div><button class="btn sm danger" data-act="qz-del" data-id="'+q.id+'">Remove</button></li>').join(''):'';
+  return '<div class="sec-h"><h2>Quiz</h2><label class="f" style="min-width:200px;flex:1;max-width:320px">Topic<select id="f-qz-filter" data-chg="filter-qz">'+topicOpts(d,f,{all:true})+'</select></label></div>'
+   +'<div class="panel stack"><div>'+pool.length+' question'+(pool.length===1?'':'s')+' in this selection'+(f==='*'&&pool.length>10?'. A round draws 10 at random.':'.')+'</div>'
+   +'<div><button class="btn primary" data-act="quiz-start" '+(pool.length?'':'disabled')+'>Start quiz</button></div>'
+   +(hist.length?'<div><div class="small muted mono" style="margin-bottom:4px">LAST ROUNDS</div>'+hist.map(s=>'<div class="small">'+new Date(s.at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' · '+esc(topicName(d,s.topic))+' · <b>'+s.score+'/'+s.total+'</b></div>').join('')+'</div>':'')+'</div>'
+   +'<h2 class="sec">Question bank</h2>'
+   +(qs?'<div class="panel"><ul class="clean">'+qs+'</ul></div>':'<div class="empty">No quiz questions here yet.</div>')
+   +'<div class="panel stack" style="margin-top:16px"><h3 style="font-size:17px">Add a question</h3>'
+   +'<label class="f">Topic<select id="f-qz-topic" data-draft>'+topicOpts(d,f==='*'?'':f)+'</select></label>'
+   +'<label class="f">Question<textarea id="f-qz-q" data-draft rows="2"></textarea></label>'
+   +'<div class="two">'+[0,1,2,3].map(i=>'<label class="f">Option '+'ABCD'[i]+'<input id="f-qz-o'+i+'" data-draft></label>').join('')+'</div>'
+   +'<label class="f">Correct option<select id="f-qz-ans" data-draft><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></label>'
+   +'<div class="row"><button class="btn primary" data-act="qz-add">Add</button>'
+   +(sample?'<button class="btn" data-act="qz-gen" '+(ui.gen?'disabled':'')+'>'+(ui.gen==='qz'?'Drafting…':'Draft 5 with Claude for the selected topic')+'</button>':'')+'</div></div>';
+}
+function quizPlay(z){
+  if(z.done){
+    const wrong=z.wrong.map(q=>'<li class="mat" style="grid-template-columns:1fr"><div><span style="overflow-wrap:anywhere">'+esc(q.q)+'</span><small>Correct: '+esc(q.opts[q.ans])+(q.why?' · '+esc(q.why):'')+'</small></div></li>').join('');
+    return '<div class="panel stack"><h2>'+z.score+' of '+z.items.length+' correct</h2>'+(wrong?'<div><div class="small muted mono">REVISIT</div><ul class="clean">'+wrong+'</ul></div>':'<div>Clean sheet.</div>')
+     +'<div class="row"><button class="btn primary" data-act="quiz-start">Another round</button><button class="btn" data-act="quiz-exit">Back to question bank</button></div></div>';
+  }
+  const q=z.items[z.i],ans=z.picked!==null;
+  return '<div class="panel stack"><div class="row" style="justify-content:space-between"><span class="mono small muted">QUESTION '+(z.i+1)+' OF '+z.items.length+'</span><button class="btn sm ghost" data-act="quiz-exit">Quit</button></div>'
+   +'<div class="qtext">'+esc(q.q)+'</div><div>'
+   +q.opts.map((o,i)=>'<button class="opt'+(ans?(i===q.ans?' right':(i===z.picked?' wrong':'')):'')+'" data-act="quiz-pick" data-i="'+i+'" '+(ans?'disabled':'')+'><b class="mono">'+'ABCD'[i]+'</b>&nbsp; '+esc(o)+'</button>').join('')+'</div>'
+   +(ans?'<div class="small">'+(z.picked===q.ans?'Correct. ':'Not quite. ')+esc(q.why||'')+'</div><div><button class="btn primary" data-act="quiz-next">'+(z.i+1>=z.items.length?'See result':'Next')+'</button></div>':'')+'</div>';
+}
+
+/* ----- Study time ----- */
+function tStudy(c,d){
+  const pl=d.plan,wd=weekDates(),mx=Math.max(60,...wd.map(x=>d.logs[dkey(x)]||0)),wk=weekMins(c.code),run=timer&&timer.code===c.code;
+  const perWeek=pl.days.length*pl.mins;
+  return '<div class="panel stack"><h2 style="font-size:20px">Weekly study time</h2>'
+   +'<div><div class="small muted mono" style="margin-bottom:8px">DAYS</div><div class="days">'+DAYL.map((l,i)=>'<button class="day" aria-pressed="'+pl.days.includes(i)+'" aria-label="'+DAYN[i]+'" data-act="day-toggle" data-i="'+i+'">'+l+'</button>').join('')+'</div></div>'
+   +'<div class="two"><label class="f">Start time<input id="f-plan-time" type="time" value="'+esc(pl.time)+'" data-chg="plan-time"></label><label class="f">Minutes per session<input id="f-plan-mins" type="number" min="5" step="5" value="'+pl.mins+'" data-chg="plan-mins"></label></div>'
+   +'<div class="small muted">Planned '+fmt(perWeek)+' a week. Your programme lists '+c.O+' hours of out-of-class work for this course.</div></div>'
+   +'<div class="panel stack" style="margin-top:16px"><div class="sec-h" style="margin:0"><h3 style="font-size:17px">This week</h3><span class="mono small muted">'+fmt(wk)+' logged</span></div>'
+   +'<div class="week">'+wd.map((x,i)=>{const m=d.logs[dkey(x)]||0;return '<div title="'+DAYN[i]+': '+fmt(m)+'" class="'+(m?'':'off')+'"><i style="height:'+Math.max(3,m/mx*68)+'px"></i>'+DAYL[i]+'</div>'}).join('')+'</div>'
+   +'<div class="row">'+(run?'<button class="btn primary" data-act="timer-stop">Stop session</button>':'<button class="btn primary" data-act="timer-start" data-code="'+c.code+'">Start session</button>')
+   +'<span class="row"><input id="f-log" data-draft type="number" min="1" step="5" placeholder="Minutes" style="width:110px" aria-label="Minutes to add"><button class="btn" data-act="log-add">Add minutes</button></span></div></div>';
+}
+
+/* ----- Ask Claude ----- */
+function chatOf(code){return ui.chat[code]||(ui.chat[code]={turns:[],busy:false,topic:'',img:null,ctl:null,err:''})}
+function tAsk(c,d){
+  if(!sample)return '<div class="empty">Asking Claude is not available in this view. Open the page from your Claude app and allow Claude when asked.</div>';
+  const ch=chatOf(c.code);
+  const msgs=ch.turns.map((m,i)=>{
+    if(m.role==='user')return '<div class="msg u">'+esc(m.content)+(m.img?'<div class="small">Photo attached</div>':'')+'</div>';
+    const live=m.pending;
+    return '<div class="msg a"'+(live?' id="live"':'')+'>'+(m.content?esc(m.content):'Thinking…')+'</div>'
+     +(!live&&m.content?'<div style="align-self:flex-start"><button class="btn sm" data-act="chat-save" data-i="'+i+'">Save as Q&amp;A</button></div>':'');
+  }).join('');
+  return '<div class="sec-h"><h2>Ask about '+esc(c.title)+'</h2><label class="f" style="min-width:200px;flex:1;max-width:320px">Focus topic<select id="f-ask-topic" data-chg="ask-topic">'+topicOpts(d,ch.topic)+'</select></label></div>'
+   +'<div class="panel stack">'
+   +(ch.turns.length?'<div class="chat" id="chat-log">'+msgs+'</div>':'<div class="small muted">Ask a doubt, or tap a prompt. Claude sees your topic list and the focus topic, not your uploaded files. For a worked problem, attach a photo of it.</div><div class="chips">'
+     +['Explain this topic simply','Give me a worked example','What mistakes are common here?','Quiz me with 3 questions'].map(t=>'<button class="btn sm" data-act="ask-chip" data-t="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>')
+   +(ch.err?'<div class="note">'+esc(ch.err)+'</div>':'')
+   +'<label class="f">Your doubt<textarea id="ask-input" data-draft rows="3" placeholder="Type your question"></textarea></label>'
+   +'<div class="row">'+(ch.busy?'<button class="btn" data-act="ask-stop">Stop</button>':'<button class="btn primary" data-act="ask-send">Send</button>')
+   +(imgOK?'<button class="btn" data-act="ask-attach">'+(ch.img?'Change photo':'Attach photo')+'</button>':'')
+   +(ch.img?'<span class="small muted" style="overflow-wrap:anywhere">'+esc(ch.img.name)+' <button class="btn sm ghost" data-act="ask-unattach">Remove</button></span>':'')
+   +(ch.turns.length&&!ch.busy?'<button class="btn ghost" data-act="ask-clear">Clear chat</button>':'')+'</div></div>';
+}
+
+/* ----- Timetable ----- */
+function renderTT(){
+  const list=ttList(),today=dow(new Date());
+  const days=[0,1,2,3,4,5,6].filter(i=>i<6||list.some(e=>e.day===6));
+  const cols=days.map(i=>{
+    const es=list.filter(e=>e.day===i).sort((a,b)=>a.start.localeCompare(b.start));
+    return '<section class="ttday'+(i===today?' today':'')+'"><h3><span>'+DAYN[i]+'</span>'+(i===today?'<span class="tag now">Today</span>':'')+'</h3>'
+     +(es.length?es.map(e=>'<button class="ent" style="--cx:var(--c'+(e.code?cidx(e.code):7)+')" data-act="tt-edit" data-id="'+e.id+'"><span class="tm">'+esc(e.start)+'–'+esc(e.end)+'</span><span class="nm">'+esc(entTitle(e))+'</span><span class="rm">'+esc(e.kind||'Lecture')+(e.room?' · '+esc(e.room):'')+'</span></button>').join(''):'<div class="ttempty">Free</div>')
+     +'</section>';
+  }).join('');
+  return semChips()
+   +'<div class="sec-h" style="margin-top:18px"><h2>'+esc(sem().name)+' timetable</h2><button class="btn primary" data-act="tt-new">+ Add class</button></div>'
+   +ttForm()
+   +(list.length?'':'<div class="empty" style="margin-bottom:14px">No classes added for this semester yet. Tap Add class, choose the days a class repeats on, and set its time.</div>')
+   +'<div class="ttgrid">'+cols+'</div>';
+}
+function ttForm(){
+  const f=ui.ttForm;if(!f)return '';
+  const list=ttList(),e=f==='new'?null:list.find(x=>x.id===f);
+  if(f!=='new'&&!e)return '';
+  const cs=courses(),cv=e?(e.code||'custom'):(cs[0]?cs[0].code:'custom');
+  return '<div class="panel stack" style="margin-bottom:14px"><h3 style="font-size:18px">'+(e?'Edit class':'New class')+'</h3>'
+   +'<div><div class="small muted mono" style="margin-bottom:8px">DAYS</div><div class="days">'+DAYL.map((l,i)=>'<button class="day" aria-pressed="'+ui.ttDays.includes(i)+'" aria-label="'+DAYN[i]+'" data-act="tt-day" data-i="'+i+'">'+l+'</button>').join('')+'</div></div>'
+   +'<div class="two"><label class="f">Starts<input id="f-tt-start" data-draft type="time" value="'+esc(e?e.start:'09:00')+'"></label><label class="f">Ends<input id="f-tt-end" data-draft type="time" value="'+esc(e?e.end:'09:50')+'"></label></div>'
+   +'<label class="f">Course<select id="f-tt-course" data-draft>'+cs.map(c=>'<option value="'+esc(c.code)+'"'+(cv===c.code?' selected':'')+'>'+esc(c.code)+' · '+esc(c.title)+'</option>').join('')+'<option value="custom"'+(cv==='custom'?' selected':'')+'>Something else</option></select></label>'
+   +'<label class="f">Name, if something else<input id="f-tt-title" data-draft value="'+esc(e&&!e.code?e.title:'')+'" placeholder="Workshop, Library, Club"></label>'
+   +'<div class="two"><label class="f">Room<input id="f-tt-room" data-draft value="'+esc(e?e.room||'':'')+'" placeholder="LH 3"></label><label class="f">Type<select id="f-tt-kind" data-draft>'+KINDT.map(k=>'<option'+((e?e.kind:'Lecture')===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label></div>'
+   +'<div class="row"><button class="btn primary" data-act="tt-save">'+(e?'Save changes':'Add to timetable')+'</button><button class="btn" data-act="tt-cancel">Cancel</button>'+(e?'<button class="btn danger" data-act="tt-del" data-id="'+e.id+'">Delete class</button>':'')+'</div></div>';
+}
+
+/* ---------- actions ---------- */
+const errCopy=e=>{const c=e&&e.code;return({not_granted:'Claude access was declined for this page. Allow it when asked to use this feature.',rate_limited:'Too many requests, or your Claude usage limit was reached. Try again later.',sampling_disabled:'Claude is not available for this account.',session_expired:'Sign in again to continue.',refused:'Claude declined that request. Rephrase it and try again.',invalid_json:'Claude’s reply could not be read. Try again.'})[c]||'Something went wrong. Try again.'};
+const go=fn=>{fn();render(true);window.scrollTo(0,0)};
+function removeCourseData(code){
+  const d=S[code];
+  if(d&&assets)d.materials.forEach(m=>{if(m.assetId)assets.delete(m.assetId).catch(()=>{})});
+  delete S[code];dirty.delete(code);
+  if(coll)coll.doc(code).delete().catch(()=>{});
+}
+
+const A={
+ 'nav-home':()=>go(()=>{view={page:'home',code:null,tab:'topics'}}),
+ 'nav-tt':()=>go(()=>{view={page:'tt',code:null,tab:'topics'};ui.ttForm=null}),
+ 'open-course':b=>go(()=>{view={page:'course',code:b.dataset.code,tab:'topics'};ui.editTopics=false;ui.pending=null;ui.quiz=null;ui.editQA=null;ui.msg='';ui.editCourse=false}),
+ 'go-home':()=>go(()=>{view={page:'home',code:null,tab:'topics'}}),
+ 'tab':b=>go(()=>{view.tab=b.dataset.tab;ui.editTopics=false;ui.pending=null;ui.editQA=null;ui.msg=''}),
+
+ 'sem-pick':b=>go(()=>{META.cur=b.dataset.id;saveMeta();if(view.page==='course')view={page:'home',code:null,tab:'topics'};ui.ttForm=null;ui.addCourse=false;ui.semSettings=false}),
+ 'sem-add-toggle':()=>{ui.addSem=!ui.addSem;render(true)},
+ 'sem-add':()=>{
+   const name=val('f-sem-name').trim()||('Semester '+(ROMAN[META.sems.length]||META.sems.length+1));
+   const s={id:'s'+rid(),name:name.slice(0,40),courses:[]};META.sems.push(s);META.cur=s.id;saveMeta();ui.addSem=false;render(true);toast(s.name+' added');
+ },
+ 'sem-settings':()=>{ui.semSettings=!ui.semSettings;render(true)},
+ 'sem-rename':()=>{const n=val('f-sem-rename').trim();if(!n){toast('Enter a name.');return}sem().name=n.slice(0,40);saveMeta();render();toast('Renamed')},
+ 'sem-del':b=>confirmBtn(b,()=>{
+   if(META.sems.length<2){toast('You need at least one semester.');return}
+   const s=sem();s.courses.forEach(c=>removeCourseData(c.code));delete META.tt[s.id];
+   META.sems=META.sems.filter(x=>x.id!==s.id);META.cur=META.sems[0].id;ui.semSettings=false;saveMeta();render(true);toast('Semester deleted');
+ }),
+ 'course-add-toggle':()=>{ui.addCourse=!ui.addCourse;render(true)},
+ 'course-add':()=>{
+   const code=val('f-c-code').trim().toUpperCase().replace(/[^A-Z0-9_-]/g,''),title=val('f-c-title').trim();
+   if(!code||!title){toast('Enter a course code and title.');return}
+   if(course(code)||code==='_META'){toast('That course code is already in use.');return}
+   const n=k=>Math.max(0,Math.round(+val('f-c-'+k))||0);
+   sem().courses.push({code,title:title.slice(0,100),L:n('L'),T:n('T'),P:n('P'),O:n('O'),cr:n('cr'),cat:(val('f-c-cat').trim().toUpperCase()||'PC').slice(0,6)});
+   saveMeta();ui.addCourse=false;render(true);toast(code+' added');
+ },
+ 'course-edit-toggle':()=>{ui.editCourse=!ui.editCourse;render(true)},
+ 'course-save':()=>{
+   const c=course(view.code),title=val('f-ce-title').trim();if(!c||!title){toast('Enter a title.');return}
+   const n=k=>Math.max(0,Math.round(+val('f-ce-'+k))||0);
+   Object.assign(c,{title:title.slice(0,100),L:n('L'),T:n('T'),P:n('P'),O:n('O'),cr:n('cr'),cat:(val('f-ce-cat').trim().toUpperCase()||c.cat).slice(0,6)});
+   saveMeta();render(true);toast('Saved');
+ },
+ 'course-del':b=>confirmBtn(b,()=>{
+   const code=b.dataset.code;
+   META.sems.forEach(s=>{s.courses=s.courses.filter(c=>c.code!==code);(META.tt[s.id]||[]).forEach(e=>{if(e.code===code){e.title=e.title||(course(code)||{}).title||code;e.code=''}})});
+   removeCourseData(code);saveMeta();go(()=>{view={page:'home',code:null,tab:'topics'};ui.editCourse=false});toast('Course removed');
+ }),
+
+ 'topic-cycle':b=>{const t=C(view.code).topics.find(x=>x.id===b.dataset.id);if(t){t.s=(t.s+1)%3;save(view.code);render()}},
+ 'topics-edit':()=>{ui.editTopics=!ui.editTopics;render()},
+ 'topic-up':b=>moveTopic(b.dataset.id,-1),
+ 'topic-down':b=>moveTopic(b.dataset.id,1),
+ 'topic-del':b=>confirmBtn(b,()=>{const d=C(view.code),id=b.dataset.id;d.topics=d.topics.filter(t=>t.id!==id);['materials','qa','quiz'].forEach(k=>d[k].forEach(x=>{if(x.topic===id)x.topic=''}));save(view.code);render()}),
+ 'topics-add':()=>{
+   const d=C(view.code),lines=val('f-topics').split('\n').map(s=>s.trim().replace(/^(\d+[.)]|[-*•])\s+/,'').trim()).filter(Boolean);
+   if(!lines.length){toast('Type or paste at least one topic.');return}
+   lines.forEach(t=>d.topics.push({id:rid(),title:t.slice(0,160),s:0}));
+   $('#f-topics').value='';save(view.code);render();toast(lines.length+' topic'+(lines.length>1?'s':'')+' added');
+ },
+
+ 'mat-pick':b=>{ui.pickKind=b.dataset.kind;$('#file-pick').value='';$('#file-pick').click()},
+ 'mat-link':b=>{ui.pending={kind:b.dataset.kind,mode:'link',title:''};ui.msg='';render()},
+ 'mat-cancel':()=>{ui.pending=null;render()},
+ 'mat-save':()=>matSave(),
+ 'mat-del':b=>confirmBtn(b,async()=>{
+   const d=C(view.code),m=d.materials.find(x=>x.id===b.dataset.id);if(!m)return;
+   d.materials=d.materials.filter(x=>x.id!==m.id);save(view.code);render();
+   if(m.assetId&&assets){try{await assets.delete(m.assetId)}catch(e){}}
+ }),
+
+ 'qa-add':()=>{
+   const q=val('f-qa-q').trim(),a=val('f-qa-a').trim();
+   if(!q||!a){toast('Add both a question and an answer.');return}
+   C(view.code).qa.push({id:rid(),topic:val('f-qa-topic'),q,a});
+   $('#f-qa-q').value='';$('#f-qa-a').value='';save(view.code);render();toast('Question added');
+ },
+ 'qa-edit':b=>{ui.editQA=b.dataset.id||null;render()},
+ 'qa-save':b=>{const q=C(view.code).qa.find(x=>x.id===b.dataset.id);if(q){q.q=val('e-qa-q').trim()||q.q;q.a=val('e-qa-a').trim()||q.a;q.ai=false;save(view.code)}ui.editQA=null;render()},
+ 'qa-del':b=>confirmBtn(b,()=>{const d=C(view.code);d.qa=d.qa.filter(x=>x.id!==b.dataset.id);save(view.code);render()}),
+ 'qa-ask':b=>{const d=C(view.code),q=d.qa.find(x=>x.id===b.dataset.id);if(!q)return;const ch=chatOf(view.code);ch.topic=q.topic||'';go(()=>{view.tab='ask'});const el=$('#ask-input');if(el){el.value='Explain this question and its answer step by step: '+q.q;el.focus()}},
+ 'qa-gen':()=>gen('qa'),
+
+ 'quiz-start':()=>quizStart(),
+ 'quiz-exit':()=>{ui.quiz=null;render()},
+ 'quiz-pick':b=>{const z=ui.quiz;if(!z||z.picked!==null)return;z.picked=+b.dataset.i;const q=z.items[z.i];if(z.picked===q.ans)z.score++;else z.wrong.push(q);render()},
+ 'quiz-next':()=>{
+   const z=ui.quiz;z.i++;z.picked=null;
+   if(z.i>=z.items.length){z.done=true;const d=C(z.code);d.scores.push({topic:z.topic,score:z.score,total:z.items.length,at:Date.now()});d.scores=d.scores.slice(-50);save(z.code)}
+   render();
+ },
+ 'qz-add':()=>{
+   const q=val('f-qz-q').trim(),opts=[0,1,2,3].map(i=>val('f-qz-o'+i).trim());
+   if(!q||opts.some(o=>!o)){toast('Fill in the question and all four options.');return}
+   C(view.code).quiz.push({id:rid(),topic:val('f-qz-topic'),q,opts,ans:+val('f-qz-ans')||0});
+   ['f-qz-q','f-qz-o0','f-qz-o1','f-qz-o2','f-qz-o3'].forEach(i=>{$('#'+i).value=''});save(view.code);render();toast('Question added');
+ },
+ 'qz-del':b=>confirmBtn(b,()=>{const d=C(view.code);d.quiz=d.quiz.filter(x=>x.id!==b.dataset.id);save(view.code);render()}),
+ 'qz-gen':()=>gen('qz'),
+
+ 'day-toggle':b=>{const pl=C(view.code).plan,i=+b.dataset.i;pl.days=pl.days.includes(i)?pl.days.filter(x=>x!==i):[...pl.days,i].sort();save(view.code);render()},
+ 'log-add':()=>{const m=Math.round(+val('f-log'));if(!(m>0)){toast('Enter the minutes studied.');return}addLog(view.code,m);$('#f-log').value='';render();toast(fmt(m)+' added')},
+ 'timer-start':b=>{
+   if(timer){toast('A session is already running. Stop it first.');return}
+   timer={code:b.dataset.code,start:Date.now()};try{localStorage.setItem(LT,JSON.stringify(timer))}catch(e){}tickTimer();render();
+ },
+ 'timer-stop':()=>stopTimer(),
+ 'draft-plan':()=>{draftPlan();render();toast('Draft plan added. Open a course to adjust it.')},
+
+ 'ask-chip':b=>{const el=$('#ask-input');if(el){el.value=b.dataset.t}askSend()},
+ 'ask-send':()=>askSend(),
+ 'ask-stop':()=>{const ch=chatOf(view.code);if(ch.ctl)ch.ctl.abort()},
+ 'ask-clear':()=>{const ch=chatOf(view.code);ch.turns=[];ch.err='';render()},
+ 'ask-attach':()=>{$('#ask-img').value='';$('#ask-img').click()},
+ 'ask-unattach':()=>{chatOf(view.code).img=null;render()},
+ 'chat-save':b=>{
+   const ch=chatOf(view.code),i=+b.dataset.i,a=ch.turns[i];let q=null;
+   for(let j=i-1;j>=0;j--){if(ch.turns[j].role==='user'){q=ch.turns[j];break}}
+   if(!a||!q)return;
+   C(view.code).qa.push({id:rid(),topic:ch.topic||'',q:q.content,a:a.content,ai:true});save(view.code);toast('Saved to Q&A');
+ },
+
+ 'tt-new':()=>{ui.ttForm='new';ui.ttDays=[];render(true)},
+ 'tt-edit':b=>{const e=ttList().find(x=>x.id===b.dataset.id);if(!e)return;ui.ttForm=e.id;ui.ttDays=[e.day];render(true);window.scrollTo(0,0)},
+ 'tt-cancel':()=>{ui.ttForm=null;render(true)},
+ 'tt-day':b=>{const i=+b.dataset.i;ui.ttDays=ui.ttDays.includes(i)?ui.ttDays.filter(x=>x!==i):[...ui.ttDays,i].sort();render()},
+ 'tt-save':()=>{
+   const start=val('f-tt-start'),end=val('f-tt-end'),cv=val('f-tt-course'),title=val('f-tt-title').trim(),room=val('f-tt-room').trim(),kind=val('f-tt-kind')||'Lecture';
+   if(!ui.ttDays.length){toast('Choose at least one day.');return}
+   if(!start||!end||tmin(end)<=tmin(start)){toast('Set an end time after the start time.');return}
+   const code=cv==='custom'?'':cv;
+   if(!code&&!title){toast('Name the class, or choose a course.');return}
+   const list=ttList(),base={start,end,code,title:code?'':title.slice(0,60),room:room.slice(0,24),kind};
+   let clash='';
+   const check=(day,skip)=>{const o=list.find(x=>x.day===day&&x.id!==skip&&tmin(x.start)<tmin(end)&&tmin(x.end)>tmin(start));if(o&&!clash)clash=DAYN[day]+' overlaps '+entTitle(o)};
+   if(ui.ttForm!=='new'){
+     const e=list.find(x=>x.id===ui.ttForm);
+     if(e){const [first,...rest]=ui.ttDays;check(first,e.id);Object.assign(e,base,{day:first});rest.forEach(d=>{check(d);list.push(Object.assign({id:rid(),day:d},base))})}
+   }else ui.ttDays.forEach(d=>{check(d);list.push(Object.assign({id:rid(),day:d},base))});
+   saveMeta();ui.ttForm=null;render(true);toast(clash?'Saved. Note: '+clash+'.':'Timetable updated');
+ },
+ 'tt-del':b=>confirmBtn(b,()=>{META.tt[META.cur]=ttList().filter(x=>x.id!==b.dataset.id);saveMeta();ui.ttForm=null;render(true)})
+};
+const CH={
+ 'topic-rename':el=>{const t=C(view.code).topics.find(x=>x.id===el.dataset.id);if(t){t.title=el.value.trim()||t.title;el.value=t.title;save(view.code)}},
+ 'plan-time':el=>{if(el.value){C(view.code).plan.time=el.value;save(view.code)}},
+ 'plan-mins':el=>{C(view.code).plan.mins=Math.max(5,Math.round(+el.value)||60);el.value=C(view.code).plan.mins;save(view.code)},
+ 'filter-qa':el=>{ui.qaTopic=el.value;ui.editQA=null;render()},
+ 'filter-qz':el=>{ui.qzTopic=el.value;render()},
+ 'ask-topic':el=>{chatOf(view.code).topic=el.value}
+};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const f=A[b.dataset.act];if(f)f(b,e)});
+document.addEventListener('change',e=>{const el=e.target.closest('[data-chg]');if(!el)return;const f=CH[el.dataset.chg];if(f)f(el)});
+
+function moveTopic(id,dir){const a=C(view.code).topics,i=a.findIndex(t=>t.id===id),j=i+dir;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save(view.code);render()}
+function addLog(code,m){const d=C(code),k=dkey(new Date());d.logs[k]=(d.logs[k]||0)+m;save(code)}
+
+/* ---------- timer ---------- */
+function tickTimer(){
+  const slot=$('#timer-slot');if(!slot)return;
+  if(!timer){slot.innerHTML='';return}
+  const s=Math.floor((Date.now()-timer.start)/1000);
+  const txt=pad(Math.floor(s/60))+':'+pad(s%60);
+  if(!slot.firstChild)slot.innerHTML='<button class="chip" data-act="timer-stop" aria-label="Stop study session"><span>'+esc(timer.code)+'</span><b id="timer-t"></b><span>Stop</span></button>';
+  const t=$('#timer-t');if(t)t.textContent=txt;
+}
+setInterval(tickTimer,1000);
+function stopTimer(){
+  if(!timer)return;
+  const m=Math.round((Date.now()-timer.start)/60000),code=timer.code;
+  timer=null;try{localStorage.removeItem(LT)}catch(e){}
+  $('#timer-slot').innerHTML='';
+  if(m>=1){addLog(code,m);toast(fmt(m)+' logged to '+code)}else toast('Under a minute, so nothing was logged.');
+  render();
+}
+
+/* ---------- drafting a plan from O hours ---------- */
+function draftPlan(){
+  const cur={};
+  courses().forEach(c=>{
+    const d=C(c.code);if(d.plan.days.length||!c.O)return;
+    const n=Math.max(1,Math.min(5,Math.round(c.O/1.5))),mins=Math.max(15,Math.round(c.O*60/n/15)*15);
+    const days=[0,1,2,3,4,5].sort((a,b)=>(cur[a]||0)-(cur[b]||0)||a-b).slice(0,n).sort((a,b)=>a-b);
+    const off=Math.max(...days.map(x=>cur[x]||0)),st=17*60+off;
+    days.forEach(x=>{cur[x]=off+mins+10});
+    d.plan={days,time:pad(Math.floor(st/60)%24)+':'+pad(st%60),mins};
+    save(c.code);
+  });
+}
+
+/* ---------- uploads ---------- */
+$('#file-pick').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const ext=(f.name.split('.').pop()||'').toLowerCase(),type=TYPES[ext];
+  if(!type){ui.msg='That file type is not supported. Use PDF, PNG, JPG, WebP, GIF, TXT, MD or CSV. Export Word or PowerPoint files as PDF first.';ui.pending=null;render();return}
+  if(f.size>20*1048576){ui.msg='That file is over 20 MB. Add it as a link instead (for example a Drive or OneDrive link).';ui.pending=null;render();return}
+  ui.msg='';ui.pending={kind:ui.pickKind,mode:'file',file:f,type,title:f.name.replace(/\.[^.]+$/,'')};render();
+});
+async function matSave(){
+  const p=ui.pending;if(!p||ui.busy)return;
+  const code=view.code,d=C(code),title=val('f-mat-title').trim()||p.title||'Untitled',topic=val('f-mat-topic');
+  if(p.mode==='link'){
+    const u=val('f-mat-url').trim();
+    if(!/^https?:\/\/\S+$/i.test(u)){toast('Enter a link that starts with http:// or https://');return}
+    d.materials.push({id:rid(),kind:p.kind,title,url:u,topic,added:Date.now()});
+    ui.pending=null;save(code);render();return;
+  }
+  if(!assets){toast('Uploads are not available in this view.');return}
+  ui.busy='upload';render();
+  try{
+    const r=await assets.upload(p.file,{type:p.type});
+    d.materials.push({id:rid(),kind:p.kind,title,assetId:r.id,type:p.type,name:p.file.name,size:r.sizeBytes,topic,added:Date.now()});
+    ui.pending=null;ui.msg='';save(code);toast('Uploaded');
+  }catch(e){
+    const c=e&&e.code;
+    ui.msg=c==='too_large'?'That file is too large (20 MB limit).':c==='quota_or_state'?'This page’s storage is full. Remove old files or use a link.':c==='rate_limited'?'Too many uploads at once. Wait a moment and retry.':'The upload failed. Try again.';
+  }
+  ui.busy=null;render();
+}
+
+/* ---------- quiz ---------- */
+function quizStart(){
+  const code=view.code,d=C(code),f=ui.qzTopic;
+  const pool=d.quiz.filter(q=>f==='*'||q.topic===f);if(!pool.length)return;
+  const items=shuffle(pool).slice(0,10).map(q=>{const ix=shuffle([0,1,2,3]);return{q:q.q,opts:ix.map(i=>q.opts[i]),ans:ix.indexOf(q.ans),why:q.why||''}});
+  ui.quiz={code,items,i:0,picked:null,score:0,wrong:[],done:false,topic:f};render();
+}
+
+/* ---------- Claude: drafting Q&A and quiz ---------- */
+async function gen(kind){
+  const code=view.code,d=C(code),c=course(code),tid=kind==='qa'?ui.qaTopic:ui.qzTopic;
+  if(!sample||ui.gen)return;
+  if(tid==='*'){toast('Choose one topic in the topic filter first.');return}
+  const tn=tid?topicName(d,tid):'the core ideas of the course';
+  const base='Course: '+c.code+' '+c.title+' (B.Tech Production Engineering, NIT Calicut, '+sem().name+'). Topic: '+tn+'. Write maths in plain text (x^2, sqrt(x)), no LaTeX. ';
+  const prompt=kind==='qa'
+    ?base+'Write 5 exam-style questions with correct, concise worked answers. Reply with only a JSON array of objects like {"q":"...","a":"..."}.'
+    :base+'Write 5 multiple-choice questions of mixed difficulty, with at least two numerical or application questions where the topic allows. Exactly one option is correct. Reply with only a JSON array of objects like {"q":"...","opts":["A text","B text","C text","D text"],"ans":0,"why":"one-sentence explanation"} where ans is the index 0-3 of the correct option.';
+  ui.gen=kind;render();
+  try{
+    const arr=await sample.json(prompt,{cache:false});
+    if(!Array.isArray(arr))throw{code:'invalid_json'};
+    let n=0;
+    arr.forEach(x=>{
+      if(!x||typeof x.q!=='string')return;
+      if(kind==='qa'){if(typeof x.a!=='string')return;d.qa.push({id:rid(),topic:tid,q:x.q.trim(),a:x.a.trim(),ai:true});n++}
+      else{if(!Array.isArray(x.opts)||x.opts.length!==4||!Number.isInteger(x.ans)||x.ans<0||x.ans>3)return;d.quiz.push({id:rid(),topic:tid,q:x.q.trim(),opts:x.opts.map(String),ans:x.ans,why:typeof x.why==='string'?x.why:'',ai:true});n++}
+    });
+    if(n){save(code);toast(n+' drafted. Read them before relying on them.')}else toast('Claude’s reply had no usable questions. Try again.');
+  }catch(e){toast(errCopy(e))}
+  ui.gen=null;render();
+}
+
+/* ---------- Claude: doubts chat ---------- */
+function sysPrompt(code,topicId){
+  const c=course(code),d=C(code);
+  const list=d.topics.length?' Topics in the course so far: '+d.topics.map(t=>t.title).join('; ')+'.':'';
+  const focus=topicId?' The student is currently working on: '+topicName(d,topicId)+'.':'';
+  return 'You are a patient tutor helping a B.Tech Production Engineering student at NIT Calicut ('+sem().name+') with the course '+c.code+' '+c.title+'.'+list+focus
+   +' Explain step by step and keep answers focused. Write maths in plain text (x^2, sqrt(x), integral of f(x) dx) because there is no LaTeX renderer. Use short paragraphs and numbered steps; no headings or tables. If the question is unclear, ask one short clarifying question. If you are unsure of a fact, say so.';
+}
+async function askSend(){
+  const code=view.code,ch=chatOf(code),el=$('#ask-input');
+  if(!sample||ch.busy)return;
+  const text=(el?el.value:'').trim();if(!text)return;
+  const blob=ch.img;ch.img=null;ch.err='';
+  ch.turns.push({role:'user',content:text,img:!!blob});
+  ch.turns.push({role:'assistant',content:'',pending:true});
+  const idx=ch.turns.length-1;
+  if(el)el.value='';
+  ch.busy=true;ch.ctl=new AbortController();render();
+  const hist=ch.turns.slice(0,idx).filter(t=>t.content).slice(-12).map(t=>({role:t.role,content:t.content}));
+  if(blob)hist[hist.length-1].content+='\n\n(The student attached a photo of the problem or page.)';
+  const input=[{role:'user',content:sysPrompt(code,ch.topic)}].concat(hist);
+  const opts={cache:false,signal:ch.ctl.signal,onText:u=>{ch.turns[idx].content=u.text;const live=document.getElementById('live');if(live&&view.code===code){live.textContent=u.text;const lg=$('#chat-log');if(lg)lg.scrollTop=lg.scrollHeight}}};
+  if(blob)opts.images=blob;
+  try{
+    const r=await sample(input,opts);
+    ch.turns[idx].content=r.text+(r.truncated?'\n\n(Cut short. Ask me to continue.)':'');
+  }catch(e){
+    if(e&&e.text)ch.turns[idx].content=e.text+(e.code==='cancelled'?'':'\n\n(Interrupted.)');
+    else{ch.turns.splice(idx,1);if(!e||e.code!=='cancelled')ch.err=errCopy(e)}
+  }
+  if(ch.turns[idx])ch.turns[idx].pending=false;
+  ch.busy=false;ch.ctl=null;render();
+}
+$('#ask-img').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f){chatOf(view.code).img=f;render()}});
+
+boot();
+})();
+</script>
+
+</body></html>
